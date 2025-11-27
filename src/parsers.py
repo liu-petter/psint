@@ -1,11 +1,8 @@
 import logging
+from src import config
 from src.exceptions import ParseException
 
 logging.basicConfig(level=logging.DEBUG)
-
-# global stacks
-oper_stack = []
-dict_stack = [{}]
 
 def boolean_parser(input):
     logging.debug(f"boolean_parser: input = \"{input}\"")
@@ -44,18 +41,22 @@ def constant_parser(input):
 def input_parser(input):
     try: 
         result = constant_parser(input)
-        oper_stack.append(result)
+        config.oper_stack.append(result)
     except ParseException as p:
         logging.debug(p)
-        # future dictionary lookup
+        lookup_dict(input)
 
-
-def repl():
-    while True:
-        user_input = input("> ")
-        tokens = user_input.split()
-        for token in tokens:
-            if token == ":q":
-                return
-            print(input_parser(token))
-        logging.debug(f"oper_stack: {oper_stack}")
+def lookup_dict(input):
+    for current_dict in reversed(config.dict_stack):
+        if input in current_dict:
+            value = current_dict[input]
+            if callable(value):
+                # check if value is a function
+                try:
+                    value()
+                except Exception as e:
+                    logging.debug(e)
+            else:
+                config.oper_stack.append(value)
+            return
+    raise ParseException(f"Could not find {input} in dictionary")
