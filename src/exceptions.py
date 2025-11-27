@@ -1,0 +1,4 @@
+class ParseException(Exception):
+    """An exception to record an error in the parsing"""
+    def __init__(self, message):
+        super().__init__(message)
