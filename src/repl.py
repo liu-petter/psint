@@ -1,4 +1,4 @@
-from src.parsers import input_parser
+from src.parsers import input_parser, tokenize_input
 from src import config
 import logging
 
@@ -6,7 +6,7 @@ import logging
 def repl():
     while True:
         user_input = input("> ")
-        tokens = user_input.split()
+        tokens = tokenize_input(user_input)
         for token in tokens:
             if token.lower() == "quit":
                 return

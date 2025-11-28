@@ -7,3 +7,8 @@ class TypeMismatchException(Exception):
     """An exception to record a type mismatch in an operation"""
     def __init__(self, message):
         super().__init__(message)
+
+class UnmatchedBracketException(Exception):
+    """An exception to record an unmatched bracket in a code block"""
+    def __init__(self, message):
+        super().__init__(message)
