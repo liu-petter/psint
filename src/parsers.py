@@ -2,7 +2,7 @@ import logging
 from src import config
 from src.exceptions import ParseException, UnmatchedBracketException
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 
 def boolean_parser(input):
     logging.debug(f"boolean_parser: input = \"{input}\"")
@@ -60,13 +60,21 @@ def constant_parser(input):
     raise ParseException(f"Could not parse {input} as boolean or number")
 
 # parses a single user inputed token
-def input_parser(input):
+# current_dict is the first dictionary that is looked into (used for lexical scoping)
+def input_parser(input, current_dict):
     try: 
         result = constant_parser(input)
         config.oper_stack.append(result)
     except ParseException as p:
         logging.debug(p)
-        lookup_dict(input)
+        try: 
+            if config.STATIC_SCOPING:
+                lookup_dict_static(input, current_dict)
+            else:
+                lookup_dict(input)
+        except ParseException as e:
+            # could not find constant in dictionaries
+            logging.error(e)
 
 # looks up in the dictionary stack for named constants
 def lookup_dict(input):
@@ -78,15 +86,34 @@ def lookup_dict(input):
                 try:
                     value()
                 except Exception as e:
-                    logging.debug(e)
+                    logging.error(e)
             elif isinstance(value, list):
                 # parses through code blocks
                 for item in value:
-                    input_parser(item)
+                    input_parser(item, current_dict)
             else:
                 config.oper_stack.append(value)
             return
     raise ParseException(f"Could not find {input} in dictionary")
+
+def lookup_dict_static(input, current_dict):
+    while current_dict is not None:
+        if input in current_dict:
+            value = current_dict[input]
+            if callable(value):
+                try:
+                    value()
+                except Exception as e:
+                    logging.error(e)
+            elif isinstance(value, list):
+                for item in value:
+                    input_parser(item, current_dict)
+            else:
+                config.oper_stack.append(value)
+            return
+        # search in parent dict
+        current_dict = current_dict.get_parent()
+    raise ParseException(f"Could not find {input} in dictionaries (lexical)")
 
 # tokenizes the input with spaces and handles code blocks
 def tokenize_input(input):

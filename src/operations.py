@@ -1,5 +1,6 @@
 from src import config
 from src.exceptions import TypeMismatchException
+from src.ps_dict import PSDict
 
 def add_oper():
     if len(config.oper_stack) >= 2:
@@ -71,3 +72,26 @@ def def_oper():
             raise TypeMismatchException(f"Unable to define {key} with {value}")
     else:
         raise TypeMismatchException("Not enough operands for operation \"mul\"")
+    
+def dict_oper():
+    new_dict = PSDict()
+    if config.STATIC_SCOPING:
+        current_dict = config.dict_stack[-1]
+        new_dict.set_parent(current_dict)
+    config.oper_stack.append(new_dict)
+
+def begin_oper():
+    if len(config.oper_stack) >= 1:
+        dict_obj = config.oper_stack.pop()
+        if isinstance(dict_obj, PSDict):
+            config.dict_stack.append(dict_obj)
+        else:
+            raise TypeMismatchException("Top of operand stack is not a dictionary")
+    else:
+        raise TypeMismatchException("Stack is empty")
+    
+def end_oper():
+    if len(config.dict_stack) > 1:
+        config.dict_stack.pop()
+    else:
+        raise TypeMismatchException("Cannot end default dictionary")
