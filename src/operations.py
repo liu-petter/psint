@@ -57,3 +57,17 @@ def pop_oper():
         print(config.oper_stack.pop())
     else:
         raise TypeMismatchException("Not enough operands for operation \"=\"")
+    
+def def_oper():
+    if len(config.oper_stack) >= 2:
+        value = config.oper_stack.pop()
+        key = config.oper_stack.pop()
+        if isinstance(key, str) and key.startswith("/"):
+            key = key[1:]
+            config.dict_stack[-1][key] = value
+        else:
+            config.oper_stack.append(key)
+            config.oper_stack.append(value)
+            raise TypeMismatchException(f"Unable to define {key} with {value}")
+    else:
+        raise TypeMismatchException("Not enough operands for operation \"mul\"")

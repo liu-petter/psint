@@ -2,7 +2,7 @@ import logging
 from src import config
 from src.exceptions import ParseException
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def boolean_parser(input):
     logging.debug(f"boolean_parser: input = \"{input}\"")
@@ -24,9 +24,18 @@ def number_parser(input):
     except ValueError:
         raise ParseException("Failed to parse number")    
 
+# handles user defined variables
+def name_constant_parser(input):
+    logging.debug(f"name_constant_parser: input = \"{input}\"")
+    if input.startswith("/"):
+        return input
+    else:
+        raise ParseException("Can't parse input into a name constant")
+
 PARSERS = [
     boolean_parser,
-    number_parser
+    number_parser,
+    name_constant_parser
 ]
 
 def constant_parser(input):

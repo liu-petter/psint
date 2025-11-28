@@ -2,7 +2,6 @@ from src.parsers import input_parser
 from src import config
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
 
 def repl():
     while True:
@@ -11,5 +10,7 @@ def repl():
         for token in tokens:
             if token.lower() == "quit":
                 return
-            print(input_parser(token))
+            result = input_parser(token)
+            if result is not None:
+                print(result)
         logging.debug(f"oper_stack: {config.oper_stack}")
