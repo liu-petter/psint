@@ -91,10 +91,14 @@ def lookup_dict(input):
     for current_dict in reversed(config.dict_stack):
         if input in current_dict:
             value = current_dict[input]
-            if callable(value):
+            if callable(value):                  
                 # check if value is a function
                 try:
-                    value()
+                    if input in ["if", "ifelse", "for", "repeat"]:
+                        # required to check if the function requires executing code blocks
+                        value(input_parser)
+                    else:
+                        value()
                 except Exception as e:
                     logging.error(e)
             elif isinstance(value, list):
@@ -112,7 +116,11 @@ def lookup_dict_static(input, current_dict):
             value = current_dict[input]
             if callable(value):
                 try:
-                    value()
+                    if input in config.exec_funcs:
+                        # required to check if the function requires executing code blocks
+                        value(input_parser)
+                    else:
+                        value()
                 except Exception as e:
                     logging.error(e)
             elif isinstance(value, list):

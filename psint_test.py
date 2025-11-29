@@ -1,6 +1,6 @@
 import pytest
 from src.exceptions import ParseException, TypeMismatchException, UnmatchedBracketException, ZeroDivisionException, IndexOutOfRangeException
-from src.parsers import boolean_parser, number_parser, code_block_parser, tokenize_input
+from src.parsers import boolean_parser, number_parser, code_block_parser, tokenize_input, input_parser
 import src.operations as ops
 from src import config
 from src.config import init_config
@@ -1105,3 +1105,47 @@ class TestOrOperator:
         config.oper_stack.clear()
         with pytest.raises(TypeMismatchException):
             ops.or_oper()
+
+class TestIfOperator:
+    def test_if_true_executes(self):
+        config.oper_stack.clear()
+        # code block: { 1 2 add }
+        code = ["1", "2", "add"]
+
+        config.oper_stack.append(True)
+        config.oper_stack.append(code)
+
+        ops.if_oper(input_parser)
+
+        # 1 + 2 = 3
+        assert config.oper_stack == [3]
+
+    def test_if_false_skips(self):
+        config.oper_stack.clear()
+        code = ["1", "2", "add"]
+
+        config.oper_stack.append(False)
+        config.oper_stack.append(code)
+
+        ops.if_oper(input_parser)
+
+        assert config.oper_stack == []
+
+    def test_if_type_error_bool(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("not_bool")
+        config.oper_stack.append(["1"])
+        with pytest.raises(TypeMismatchException):
+            ops.if_oper(input_parser)
+
+    def test_if_type_error_proc(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append("not_a_proc")
+        with pytest.raises(TypeMismatchException):
+            ops.if_oper(input_parser)
+
+    def test_if_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.if_oper(input_parser)

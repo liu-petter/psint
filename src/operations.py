@@ -195,6 +195,38 @@ def equal_oper():
     else:
         raise TypeMismatchException("Not enough operands for operation \"=\"")
     
+def print_oper():
+    if not config.oper_stack:
+        raise TypeMismatchException("Operand stack empty for \"print\"")
+    
+    value = config.oper_stack.pop()
+    
+    if not isinstance(value, str):
+        raise TypeMismatchException(f"'print' expects a string, got {type(value).__name__}")
+    
+    print(value)
+
+def eqeq_oper():
+    if not config.oper_stack:
+        raise TypeMismatchException("Operand stack empty for \"==\"")
+    
+    value = config.oper_stack.pop()
+
+    if isinstance(value, str):
+        ps_repr = f"({value})"
+    elif isinstance(value, bool):
+        ps_repr = "true" if value else "false"
+    elif isinstance(value, (int, float)):
+        ps_repr = str(value)
+    elif isinstance(value, list):
+        ps_repr = "{ " + " ".join(map(str, value)) + " }"
+    elif isinstance(value, dict):
+        ps_repr = f"<<{value}>>"
+    else:
+        ps_repr = str(value)
+    
+    print(ps_repr)
+    
 def def_oper():
     if len(config.oper_stack) >= 2:
         value = config.oper_stack.pop()
@@ -476,3 +508,22 @@ def or_oper():
         return
 
     raise TypeMismatchException("Operands to \"or\" must both be booleans or both be integers")
+
+def if_oper(input_parser):
+
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"if\"")
+
+    proc = config.oper_stack.pop()
+    cond = config.oper_stack.pop()
+
+    if type(cond) is not bool:
+        raise TypeMismatchException("First operand to \"if\" must be boolean")
+
+    if not isinstance(proc, list):
+        raise TypeMismatchException("Second operand to \"if\" must be a code block")
+
+    # execute code block
+    if cond:
+        for token in proc:
+            input_parser(token, config.dict_stack[-1])

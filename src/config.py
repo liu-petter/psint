@@ -8,6 +8,10 @@ STATIC_SCOPING = False
 oper_stack = []
 dict_stack = []
 
+# used to differentiate functions that require executing code blocks
+# check func if in list to pass input_parser into func so no import loops
+exec_funcs = ["if", "ifelse", "for", "repeat"]
+
 def init_config():
     # default dictionary
     dict_stack.append(PSDict())
@@ -26,7 +30,10 @@ def init_config():
     dict_stack[-1]["round"] = ops.round_oper
     dict_stack[-1]["sqrt"] = ops.sqrt_oper
 
+    # output operations
     dict_stack[-1]["="] = ops.equal_oper
+    dict_stack[-1]["print"] = ops.print_oper
+    dict_stack[-1]["=="] = ops.eqeq_oper
 
     # dictionary operations
     dict_stack[-1]["def"] = ops.def_oper
@@ -58,3 +65,6 @@ def init_config():
     dict_stack[-1]["and"] = ops.and_oper
     dict_stack[-1]["not"] = ops.not_oper
     dict_stack[-1]["or"] = ops.or_oper
+
+    # flow control operations
+    dict_stack[-1]["if"] = ops.if_oper
