@@ -1,9 +1,10 @@
 import pytest
-from src.exceptions import ParseException, TypeMismatchException, UnmatchedBracketException, ZeroDivisionException
+from src.exceptions import ParseException, TypeMismatchException, UnmatchedBracketException, ZeroDivisionException, IndexOutOfRangeException
 from src.parsers import boolean_parser, number_parser, code_block_parser, tokenize_input
 import src.operations as ops
 from src import config
 from src.config import init_config
+from src.ps_dict import PSDict
 
 ##-----------------------------------------------
 # Parser Testing
@@ -552,3 +553,555 @@ class TestDefOperator:
         config.oper_stack.extend([2, "/x"])
         with pytest.raises(TypeMismatchException):
             ops.def_oper()
+
+class TestLengthOperator:
+    def test_length_string(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        ops.length_oper()
+        assert config.oper_stack == [5]
+
+    def test_length_empty_string(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("")
+        ops.length_oper()
+        assert config.oper_stack == [0]
+
+    def test_length_dict(self):
+        config.oper_stack.clear()
+        d = PSDict()
+        d['a'] = 1
+        d['b'] = 2
+        config.oper_stack.append(d)
+        ops.length_oper()
+        assert config.oper_stack == [2]
+
+    def test_length_empty_dict(self):
+        config.oper_stack.clear()
+        d = PSDict()
+        config.oper_stack.append(d)
+        ops.length_oper()
+        assert config.oper_stack == [0]
+
+    def test_length_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(42)
+        with pytest.raises(TypeMismatchException):
+            ops.length_oper()
+
+    def test_length_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.length_oper()
+
+class TestGetOperator:
+    def test_get_string(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(1)
+        ops.get_oper()
+        assert config.oper_stack == [ord('e')]
+
+    def test_get_string_first_last(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hi")
+        config.oper_stack.append(0)
+        ops.get_oper()
+        assert config.oper_stack == [ord('h')]
+
+        config.oper_stack.append("hi")
+        config.oper_stack.append(1)
+        ops.get_oper()
+        assert config.oper_stack[-1] == ord('i')
+
+    def test_get_string_out_of_bounds(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hi")
+        config.oper_stack.append(5)
+        with pytest.raises(IndexOutOfRangeException):
+            ops.get_oper()
+
+    def test_get_string_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(123)
+        config.oper_stack.append(0)
+        with pytest.raises(TypeMismatchException):
+            ops.get_oper()
+
+    def test_get_string_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.get_oper()
+
+class TestGetIntervalOperator:
+    def test_getinterval_basic(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello world")
+        config.oper_stack.append(6)  # index
+        config.oper_stack.append(5)  # count
+        ops.getinterval_oper()
+        assert config.oper_stack == ["world"]
+
+    def test_getinterval_start_zero(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(0)
+        config.oper_stack.append(2)
+        ops.getinterval_oper()
+        assert config.oper_stack == ["he"]
+
+    def test_getinterval_full_string(self):
+        config.oper_stack.clear()
+        s = "hello"
+        config.oper_stack.append(s)
+        config.oper_stack.append(0)
+        config.oper_stack.append(len(s))
+        ops.getinterval_oper()
+        assert config.oper_stack == [s]
+
+    def test_getinterval_out_of_range(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hi")
+        config.oper_stack.append(1)
+        config.oper_stack.append(5)
+        with pytest.raises(IndexOutOfRangeException):
+            ops.getinterval_oper()
+
+    def test_getinterval_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(42)
+        config.oper_stack.append(0)
+        config.oper_stack.append(1)
+        with pytest.raises(TypeMismatchException):
+            ops.getinterval_oper()  
+
+    def test_getinterval_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.getinterval_oper()
+
+class TestPutIntervalOperator:
+    def test_putinterval_basic(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("abcde")   # target
+        config.oper_stack.append(2)         # index
+        config.oper_stack.append("XY")      # source
+        ops.putinterval_oper()
+        assert config.oper_stack == ["abXYe"]
+
+    def test_putinterval_start_zero(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(0)
+        config.oper_stack.append("HE")
+        ops.putinterval_oper()
+        assert config.oper_stack == ["HEllo"]
+
+    def test_putinterval_full_replacement(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("abcd")
+        config.oper_stack.append(0)
+        config.oper_stack.append("WXYZ")
+        ops.putinterval_oper()
+        assert config.oper_stack == ["WXYZ"]
+
+    def test_putinterval_out_of_range(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("abcd")
+        config.oper_stack.append(2)
+        config.oper_stack.append("WXYZ")
+        with pytest.raises(IndexOutOfRangeException):
+            ops.putinterval_oper()
+
+    def test_putinterval_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(123)
+        config.oper_stack.append(0)
+        config.oper_stack.append("XY")
+        with pytest.raises(TypeMismatchException):
+            ops.putinterval_oper()
+
+    def test_putinterval_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.putinterval_oper()
+
+class TestEqOperator:
+    def test_eq_numbers(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(5)
+        ops.eq_oper()
+        assert config.oper_stack == [True]
+
+    def test_eq_numbers_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(6)
+        ops.eq_oper()
+        assert config.oper_stack == [False]
+
+    def test_eq_strings(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append("hello")
+        ops.eq_oper()
+        assert config.oper_stack == [True]
+
+    def test_eq_strings_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append("world")
+        ops.eq_oper()
+        assert config.oper_stack == [False]
+
+    def test_eq_booleans(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(True)
+        ops.eq_oper()
+        assert config.oper_stack == [True]
+
+    def test_eq_dicts(self):
+        config.oper_stack.clear()
+        d1 = PSDict()
+        d1['a'] = 1
+        d2 = PSDict()
+        d2['a'] = 1
+        config.oper_stack.append(d1.dict)
+        config.oper_stack.append(d2.dict)
+        ops.eq_oper()
+        assert config.oper_stack == [True]
+
+    def test_eq_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.eq_oper()
+
+class TestNeOperator:
+    def test_ne_numbers_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(6)
+        ops.ne_oper()
+        assert config.oper_stack == [True]
+
+    def test_ne_numbers_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(5)
+        ops.ne_oper()
+        assert config.oper_stack == [False]
+
+    def test_ne_strings_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append("world")
+        ops.ne_oper()
+        assert config.oper_stack == [True]
+
+    def test_ne_strings_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append("hello")
+        ops.ne_oper()
+        assert config.oper_stack == [False]
+
+    def test_ne_booleans_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(False)
+        ops.ne_oper()
+        assert config.oper_stack == [True]
+
+    def test_ne_dicts(self):
+        config.oper_stack.clear()
+        d1 = PSDict()
+        d1['a'] = 1
+        d2 = PSDict()
+        d2['a'] = 1
+        config.oper_stack.append(d1.dict)
+        config.oper_stack.append(d2.dict)
+        ops.ne_oper()
+        assert config.oper_stack == [False]
+
+    def test_ne_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.ne_oper()
+
+class TestGtOperator:
+    def test_ge_true_equal(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(5)
+        ops.ge_oper()
+        assert config.oper_stack == [True]
+
+    def test_ge_true_greater(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(10)
+        config.oper_stack.append(5)
+        ops.ge_oper()
+        assert config.oper_stack == [True]
+
+    def test_ge_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(3)
+        config.oper_stack.append(5)
+        ops.ge_oper()
+        assert config.oper_stack == [False]
+
+    def test_ge_float_int(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5.5)
+        config.oper_stack.append(5)
+        ops.ge_oper()
+        assert config.oper_stack == [True]
+
+    def test_ge_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(5)
+        with pytest.raises(TypeMismatchException):
+            ops.ge_oper()
+
+    def test_ge_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.ge_oper()
+
+class TestGtOperator:
+    def test_gt_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(10)
+        config.oper_stack.append(5)
+        ops.gt_oper()
+        assert config.oper_stack == [True]
+
+    def test_gt_false_equal(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(7)
+        config.oper_stack.append(7)
+        ops.gt_oper()
+        assert config.oper_stack == [False]
+
+    def test_gt_false_less(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(2)
+        config.oper_stack.append(5)
+        ops.gt_oper()
+        assert config.oper_stack == [False]
+
+    def test_gt_float(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(3.5)
+        config.oper_stack.append(2.1)
+        ops.gt_oper()
+        assert config.oper_stack == [True]
+
+    def test_gt_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(5)
+        with pytest.raises(TypeMismatchException):
+            ops.gt_oper()
+
+    def test_gt_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.gt_oper()
+
+class TestLeOperator:
+    def test_le_true_equal(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(5)
+        ops.le_oper()
+        assert config.oper_stack == [True]
+
+    def test_le_true_less(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(2)
+        config.oper_stack.append(5)
+        ops.le_oper()
+        assert config.oper_stack == [True]
+
+    def test_le_false_greater(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(10)
+        config.oper_stack.append(3)
+        ops.le_oper()
+        assert config.oper_stack == [False]
+
+    def test_le_float_int(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(3.5)
+        config.oper_stack.append(4)
+        ops.le_oper()
+        assert config.oper_stack == [True]
+
+    def test_le_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(5)
+        with pytest.raises(TypeMismatchException):
+            ops.le_oper()
+
+    def test_le_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.le_oper()
+
+class TestLtOperator:
+    def test_lt_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(2)
+        config.oper_stack.append(5)
+        ops.lt_oper()
+        assert config.oper_stack == [True]
+
+    def test_lt_false_equal(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(5)
+        config.oper_stack.append(5)
+        ops.lt_oper()
+        assert config.oper_stack == [False]
+
+    def test_lt_false_greater(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(8)
+        config.oper_stack.append(3)
+        ops.lt_oper()
+        assert config.oper_stack == [False]
+
+    def test_lt_float(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(2.5)
+        config.oper_stack.append(3.1)
+        ops.lt_oper()
+        assert config.oper_stack == [True]
+
+    def test_lt_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        config.oper_stack.append(5)
+        with pytest.raises(TypeMismatchException):
+            ops.lt_oper()
+
+    def test_lt_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.lt_oper()
+
+class TestAndOperator:
+    def test_and_bool_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(True)
+        ops.and_oper()
+        assert config.oper_stack == [True]
+
+    def test_and_bool_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(False)
+        ops.and_oper()
+        assert config.oper_stack == [False]
+
+    def test_and_bool_false2(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(False)
+        config.oper_stack.append(False)
+        ops.and_oper()
+        assert config.oper_stack == [False]
+
+    def test_and_int_bitwise(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(6)  # 110
+        config.oper_stack.append(3)  # 011
+        ops.and_oper()
+        assert config.oper_stack == [2]  # 010
+
+    def test_and_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(3)
+        with pytest.raises(TypeMismatchException):
+            ops.and_oper()
+
+    def test_and_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.and_oper()
+
+class TestNotOperator:
+    def test_not_bool_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        ops.not_oper()
+        assert config.oper_stack == [False]
+
+    def test_not_bool_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(False)
+        ops.not_oper()
+        assert config.oper_stack == [True]
+
+    def test_not_int(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(6)
+        ops.not_oper()
+        assert config.oper_stack == [~6]   # -7
+
+    def test_not_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.not_oper()
+
+    def test_not_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append("hello")
+        with pytest.raises(TypeMismatchException):
+            ops.not_oper()
+
+class TestOrOperator:
+    def test_or_bool_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(False)
+        ops.or_oper()
+        assert config.oper_stack == [True]
+
+    def test_or_bool_false(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(False)
+        config.oper_stack.append(False)
+        ops.or_oper()
+        assert config.oper_stack == [False]
+
+    def test_or_bool_true_true(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(True)
+        ops.or_oper()
+        assert config.oper_stack == [True]
+
+    def test_or_int_bitwise(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(6)   # 110
+        config.oper_stack.append(3)   # 011
+        ops.or_oper()
+        assert config.oper_stack == [7]  # 111
+
+    def test_or_type_error(self):
+        config.oper_stack.clear()
+        config.oper_stack.append(True)
+        config.oper_stack.append(3)
+        with pytest.raises(TypeMismatchException):
+            ops.or_oper()
+
+    def test_or_underflow(self):
+        config.oper_stack.clear()
+        with pytest.raises(TypeMismatchException):
+            ops.or_oper()

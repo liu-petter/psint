@@ -17,3 +17,8 @@ class ZeroDivisionException(Exception):
     """An exception to catch division by zero error"""
     def __init__(self, message):
         super().__init__(message)
+
+class IndexOutOfRangeException(Exception):
+    """An exception that occurs when indexing out of range"""
+    def __init__(self, message):
+        super().__init__(message)

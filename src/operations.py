@@ -1,5 +1,5 @@
 from src import config
-from src.exceptions import TypeMismatchException, ZeroDivisionException
+from src.exceptions import TypeMismatchException, ZeroDivisionException, IndexOutOfRangeException
 from src.ps_dict import PSDict
 import math
 
@@ -231,6 +231,78 @@ def end_oper():
         config.dict_stack.pop()
     else:
         raise TypeMismatchException("Cannot end default dictionary")
+
+def length_oper():
+    if len(config.oper_stack) < 1:
+        raise TypeMismatchException("Not enough operands for operation \"length\"")
+
+    op = config.oper_stack.pop()
+
+    if isinstance(op, str):
+        result = len(op)
+    elif isinstance(op, PSDict):
+        result = len(op.dict)  # use internal dict for key-count
+    else:
+        raise TypeMismatchException("Operand to \"length\" must be a string or dictionary")
+
+    config.oper_stack.append(result)
+
+def get_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"get\"")
+
+    index = config.oper_stack.pop()
+    s = config.oper_stack.pop()
+
+    if not isinstance(s, str):
+        raise TypeMismatchException("Operand to \"get\" must be a string")
+    if not isinstance(index, int):
+        raise TypeMismatchException("String index must be an integer")
+    if index < 0 or index >= len(s):
+        raise IndexOutOfRangeException("String index out of range")
+
+    config.oper_stack.append(ord(s[index]))
+
+def getinterval_oper():
+    if len(config.oper_stack) < 3:
+        raise TypeMismatchException("Not enough operands for operation \"getinterval\"")
+
+    count = config.oper_stack.pop()
+    index = config.oper_stack.pop()
+    s = config.oper_stack.pop()
+
+    if not isinstance(s, str):
+        raise TypeMismatchException("First operand must be a string")
+    if not isinstance(index, int) or not isinstance(count, int):
+        raise TypeMismatchException("Index and count must be integers")
+    if index < 0 or count < 0 or index + count > len(s):
+        raise IndexOutOfRangeException("Index/count out of range")
+
+    substring = s[index:index + count]
+    config.oper_stack.append(substring)
+
+def putinterval_oper():
+    if len(config.oper_stack) < 3:
+        raise TypeMismatchException("Not enough operands for operation \"putinterval\"")
+
+    source = config.oper_stack.pop()
+    index = config.oper_stack.pop()
+    target = config.oper_stack.pop()
+
+    if not isinstance(source, str) or not isinstance(target, str):
+        raise TypeMismatchException("Source and target must be strings")
+    if not isinstance(index, int):
+        raise TypeMismatchException("Index must be an integer")
+    if index < 0 or index + len(source) > len(target):
+        raise IndexOutOfRangeException("Index + length of source out of range")
+
+    # Convert target to list to mutate
+    target_list = list(target)
+    for i, c in enumerate(source):
+        target_list[index + i] = c
+
+    new_target = "".join(target_list)
+    config.oper_stack.append(new_target)
     
 def exch_oper():
     if len(config.oper_stack) >= 2:
@@ -281,3 +353,126 @@ def clear_oper():
 
 def count_oper():
     config.oper_stack.append(len(config.oper_stack))
+
+def eq_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"eq\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    config.oper_stack.append(op1 == op2)
+
+def ne_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"ne\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    config.oper_stack.append(op1 != op2)
+
+def ge_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"ge\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    if not isinstance(op2, (int, float)) or not isinstance(op1, (int, float)):
+        raise TypeMismatchException("Operands must be numbers")
+
+    config.oper_stack.append(op2 >= op1)
+
+def gt_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"gt\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    if not isinstance(op2, (int, float)) or not isinstance(op1, (int, float)):
+        raise TypeMismatchException("Operands must be numbers")
+
+    config.oper_stack.append(op2 > op1)
+
+def le_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"le\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    if not isinstance(op2, (int, float)) or not isinstance(op1, (int, float)):
+        raise TypeMismatchException("Operands must be numbers")
+
+    config.oper_stack.append(op2 <= op1)
+
+def lt_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"lt\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    if not isinstance(op2, (int, float)) or not isinstance(op1, (int, float)):
+        raise TypeMismatchException("Operands must be numbers")
+
+    config.oper_stack.append(op2 < op1)
+
+def and_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operation \"and\"") 
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    # boolean and
+    if isinstance(op2, bool) and isinstance(op1, bool):
+        config.oper_stack.append(op2 and op1)
+        return
+
+    # integer bitwise and
+    if type(op2) is int and type(op1) is int:
+        config.oper_stack.append(op2 & op1)
+        return
+
+    # type mismatch
+    raise TypeMismatchException("Operands to \"and\" must both be booleans or both integers")
+
+def not_oper():
+    if len(config.oper_stack) < 1:
+        raise TypeMismatchException("Not enough operands for operator \"not\"")
+
+    op = config.oper_stack.pop()
+
+    # bool logical not
+    if type(op) is bool:
+        config.oper_stack.append(not op)
+        return
+
+    # int bitwise not
+    if type(op) is int:
+        config.oper_stack.append(~op)
+        return
+
+    raise TypeMismatchException("Operand to \"not\" must be boolean or integer")
+
+def or_oper():
+    if len(config.oper_stack) < 2:
+        raise TypeMismatchException("Not enough operands for operator \"or\"")
+
+    op1 = config.oper_stack.pop()
+    op2 = config.oper_stack.pop()
+
+    # Boolean OR
+    if type(op2) is bool and type(op1) is bool:
+        config.oper_stack.append(op2 or op1)
+        return
+
+    # Integer bitwise OR (bools excluded!)
+    if type(op2) is int and type(op1) is int:
+        config.oper_stack.append(op2 | op1)
+        return
+
+    raise TypeMismatchException("Operands to \"or\" must both be booleans or both be integers")
