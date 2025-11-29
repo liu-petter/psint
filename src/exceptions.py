@@ -12,3 +12,8 @@ class UnmatchedBracketException(Exception):
     """An exception to record an unmatched bracket in a code block"""
     def __init__(self, message):
         super().__init__(message)
+
+class ZeroDivisionException(Exception):
+    """An exception to catch division by zero error"""
+    def __init__(self, message):
+        super().__init__(message)
