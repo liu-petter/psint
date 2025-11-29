@@ -41,12 +41,22 @@ def code_block_parser(input):
     else:
         raise ParseException("Could not parse input into a code block")
 
+def string_parser(input):
+    logging.debug(f"ps_string_parser: input = \"{input}\"")
+    
+    if len(input) >= 2 and input.startswith("(") and input.endswith(")"):
+        # removes ()
+        return input[1:-1]
+    else:
+        raise ParseException("Could not parse input into a string")
+
 # list of parsers
 PARSERS = [
     boolean_parser,
     number_parser,
     name_constant_parser,
-    code_block_parser
+    code_block_parser,
+    string_parser
 ]
 
 # parses a constant by finding a parser that matches
@@ -117,8 +127,8 @@ def lookup_dict_static(input, current_dict):
 
 # tokenizes the input with spaces and handles code blocks
 def tokenize_input(input):
-    tokens = []             # final list of tokens
-    current = []            # list of chars for current token we are looking at
+    tokens = []        # final list of tokens
+    current = []       # list of chars for current token
     i = 0
     length = len(input)
 
@@ -139,26 +149,45 @@ def tokenize_input(input):
             i += 1
             block = ['{']
 
-            # append until }
-            while i < length and input[i] != '}':
-                block.append(input[i])
+            while i < length:
+                if input[i] == '}':
+                    block.append('}')
+                    i += 1
+                    break
+                else:
+                    block.append(input[i])
+                    i += 1
+            else:
+                raise UnmatchedBracketException("Unmatched '{' in input")
+            
+            tokens.append("".join(block))
+            continue
+
+        # start of string
+        if char == '(':
+            i += 1
+            string_token = ['(']
+            paren_count = 1  # for nested parentheses
+
+            while i < length and paren_count > 0:
+                c = input[i]
+                string_token.append(c)
+                if c == '(':
+                    paren_count += 1
+                elif c == ')':
+                    paren_count -= 1
                 i += 1
 
-            if i >= length:
-                raise UnmatchedBracketException("Unmatched '{' in input")
+            if paren_count != 0:
+                raise ParseException("Unmatched '(' in input")
 
-            # append closing }
-            block.append('}')
-            i += 1
-
-            tokens.append("".join(block))
+            tokens.append("".join(string_token))
             continue
 
         # normal token
         current.append(char)
         i += 1
 
-    # final token
     if current:
         tokens.append("".join(current))
 
